@@ -1,13 +1,14 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
-import { Form, Col, Row, Alert } from "react-bootstrap";
+import { Form, Col, Row } from "react-bootstrap";
 
 import {
   headerAndReq,
-  useFetchTopicData,
-  useFetchSubscriberData,
   baseUrl,
+  useFetchSubscriberData,
+  topicListUrl,
 } from "../Component/ApiData";
+import AlertResponse from "../Component/AlertResponse";
 
 function Seek() {
   const [topicName, setTopicName] = useState("");
@@ -16,63 +17,98 @@ function Seek() {
   const [partitionsCount, setPartitionsCount] = useState(0);
   //const [instance, setInstance] = useState("");
   const [position, setPosition] = useState("");
-
-  const [message, setMessage] = useState("");
-  const [variant, setVariant] = useState("");
-  const [alertHeading, setAlertHeading] = useState("");
-
   const { register, handleSubmit, formState } = useForm();
   const { isSubmitting } = formState;
 
+  const [variant, setVariant] = useState("");
+  const [alertHeading, setAlertHeading] = useState("");
+  const [requestURL, setRequestURL] = useState("");
+  const [responseMessage, setResponseMessage] = useState("");
+
   const [subscriberData, subscriberLoading] = useFetchSubscriberData(4000);
-  const [topicData, topicLoading] = useFetchTopicData(4000);
+
+  const [partitionData, setPartitionData] = useState([]);
 
   const onSubmit = async (e) => {
-    const msgBody =
-      '{"partitions":[{"topic":"' +
-      e.topic +
-      '","partition":' +
-      e.partitionsCount +
-      "}]}";
+    try {
+      const msgBody =
+        '{"partitions":[{"topic":"' +
+        e.topic +
+        '","partition":' +
+        e.partitionsCount +
+        "}]}";
 
-    await fetch(
-      baseUrl +
-        "consumers/" +
-        e.subscriberName +
-        "/instances/1" +
-        //e.instance +
-        "/positions/" +
-        e.position,
-      headerAndReq("POST", msgBody)
-    )
-      .then((response) => response.text())
-      .then((result) => {
-        console.log(result);
-        if (result === "\n") {
-          setVariant("success");
-          setAlertHeading(
-            "Moved Consumer offset to " +
-              e.position +
-              " of the Partitions specified."
-          );
-          setMessage(result);
-        } else {
-          setVariant("danger");
-          setAlertHeading("Oh snap! You got an error!");
-          setMessage(result);
-        }
-      })
-      .catch((error) => {
-        setMessage(error);
+      let response = await fetch(
+        baseUrl +
+          "consumers/" +
+          e.subscriberName +
+          "/instances/1" +
+          //e.instance +
+          "/positions/" +
+          e.position,
+        headerAndReq("POST", msgBody)
+      );
+      let result = await response.text();
+      if (response.status === 201) {
+        setVariant("success");
+        setAlertHeading(
+          "Moved Consumer offset to " +
+            e.position +
+            " of the Partitions specified."
+        );
+        setRequestURL(response.url);
+        setResponseMessage("Success! There is no content to display yet");
+      } else {
         setVariant("danger");
-        setAlertHeading("Ah snap! You got an error!");
-      });
+        setAlertHeading("Oh snap! You got an error!");
+        setRequestURL(response.url);
+        setResponseMessage(result);
+      }
+    } catch (error) {
+      setResponseMessage(error);
+      setVariant("danger");
+      setAlertHeading("Oh snap! You got an error!");
+    }
     return new Promise((resolve) => {
       setTimeout(() => {
         resolve();
       }, 2000);
     });
   };
+  //Topic DropDown
+  var distinctTopicValues;
+  if (subscriberData !== undefined && subscriberData !== null) {
+    distinctTopicValues = [
+      ...new Set(subscriberData.map((item) => item.topic)),
+    ];
+  }
+  const handleTopicChange = (e) => {
+    const selectedTopic = e.target.value;
+    setTopicName(selectedTopic);
+    if (selectedTopic) {
+      fetch(topicListUrl + selectedTopic + /partitions/, headerAndReq("GET"))
+        .then((response) => response.json())
+        .then((res) => {
+          setPartitionData(res.data);
+        })
+        .catch((err) => {
+          console.log(err.message);
+        });
+    }
+  };
+
+  //SubscriberDropDown
+  const subscriberDataFiltered = useMemo(() => {
+    if (
+      subscriberData &&
+      subscriberData !== undefined &&
+      subscriberData !== null
+    ) {
+      return subscriberData.filter((item) => item.topic === topicName);
+    } else {
+      return [];
+    }
+  }, [topicName, subscriberData]);
 
   return (
     <div className="App">
@@ -88,22 +124,15 @@ function Seek() {
                 required
                 as="select"
                 {...register("topic", { required: true })}
+                onChange={handleTopicChange}
               >
-                <option value="" onChange={(e) => setTopicName(e.target.value)}>
-                  Select...
-                </option>
-                {topicData &&
-                  topicData !== undefined &&
-                  topicData !== null &&
-                  topicData
-                    .sort((a, b) => (a.topic_name > b.topic_name ? 1 : -1))
-                    .map((item) => (
-                      <option
-                        key={item.topic_name}
-                        value={item.topic_name}
-                        onChange={(e) => setTopicName(e.target.value)}
-                      >
-                        {item.topic_name}
+                <option value="">Select...</option>
+                {distinctTopicValues &&
+                  distinctTopicValues
+                    .sort((a, b) => (a > b ? 1 : -1))
+                    .map((value, index) => (
+                      <option key={index} value={value}>
+                        {value}
                       </option>
                     ))}
               </Form.Control>
@@ -128,22 +157,16 @@ function Seek() {
                 >
                   Select...
                 </option>
-                {subscriberData &&
-                  subscriberData !== undefined &&
-                  subscriberData !== null &&
-                  subscriberData
-                    .sort((a, b) =>
-                      a.consumer_group_id > b.consumer_group_id ? 1 : -1
-                    )
-                    .map((item) => (
-                      <option
-                        key={item.consumer_group_id}
-                        value={item.consumer_group_id}
-                        onChange={(e) => setSubscriberName(e.target.value)}
-                      >
-                        {item.consumer_group_id}
-                      </option>
-                    ))}
+                {subscriberDataFiltered &&
+                  subscriberDataFiltered.map((item, index) => (
+                    <option
+                      key={index}
+                      value={item.consumer_group_id}
+                      onChange={(e) => setSubscriberName(e.target.value)}
+                    >
+                      {item.consumer_group_id}
+                    </option>
+                  ))}
               </Form.Control>
             </Col>
           </Form.Group>
@@ -182,6 +205,38 @@ function Seek() {
         <Row>
           <Form.Group className="mb-3">
             <Col xs={5}>
+              <Form.Label>Select the Partition:</Form.Label>
+            </Col>
+
+            <Col xs={5}>
+              <Form.Control
+                required
+                as="select"
+                {...register("partitionsCount", { required: true })}
+              >
+                <option
+                  value=""
+                  onChange={(e) => setPartitionsCount(e.target.value)}
+                >
+                  Select...
+                </option>
+                {partitionData &&
+                  partitionData.map((item, index) => (
+                    <option
+                      key={index}
+                      value={item.partition}
+                      onChange={(e) => setPartitionsCount(e.target.value)}
+                    >
+                      {item.partition}
+                    </option>
+                  ))}
+              </Form.Control>
+            </Col>
+          </Form.Group>
+        </Row>
+        {/* <Row>
+          <Form.Group className="mb-3">
+            <Col xs={5}>
               <Form.Label>Enter the Partition:</Form.Label>
             </Col>
             <Col xs={5}>
@@ -195,7 +250,7 @@ function Seek() {
               />
             </Col>
           </Form.Group>
-        </Row>
+        </Row> */}
         {/* <Row>
           <Form.Group className="mb-3">
             <Col xs={5}>
@@ -225,10 +280,13 @@ function Seek() {
           </Col>
         </Row>
         <br />
-        <Alert variant={variant}>
-          <Alert.Heading>{alertHeading}</Alert.Heading>
-          <span>{message ? <span>{message}</span> : null}</span>
-        </Alert>
+        <br />
+        <AlertResponse
+          variant={variant}
+          alertHeading={alertHeading}
+          requestURL={requestURL}
+          responseMessage={responseMessage}
+        />
       </form>
     </div>
   );

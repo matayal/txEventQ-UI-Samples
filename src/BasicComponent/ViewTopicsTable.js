@@ -50,7 +50,7 @@ const ViewTopicsTable = ({ topicData, subscriberData, loading }) => {
     { title: "Topic Name", accessor: "topic_name" },
     { title: "Subscriber Name", accessor: "consumer_group_id" },
     { title: "Kind", accessor: "kind" },
-    { title: "Partitions count", accessor: "partitions_count" },
+    { title: "Active Partitions", accessor: "partitions_count" },
     { title: "is_internal", accessor: "is_internal" },
   ]);
 

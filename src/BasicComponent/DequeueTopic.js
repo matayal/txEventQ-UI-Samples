@@ -6,14 +6,17 @@ import {
   baseUrl,
   useFetchSubscriberData,
 } from "../Component/ApiData";
+import AlertResponse from "../Component/AlertResponse";
 
 function DequeueTopic() {
   const [subscriberName, setSubscriberName] = useState("");
-  const [message, setMessage] = useState("");
-  const [variant, setVariant] = useState("");
-  const [alertHeading, setAlertHeading] = useState("");
   const { register, handleSubmit, formState } = useForm();
   const { isSubmitting } = formState;
+
+  const [variant, setVariant] = useState("");
+  const [alertHeading, setAlertHeading] = useState("");
+  const [requestURL, setRequestURL] = useState("");
+  const [responseMessage, setResponseMessage] = useState("");
 
   const [subscriberData, subscriberLoading] = useFetchSubscriberData(3800);
   const onSubmit = async (e) => {
@@ -30,14 +33,14 @@ function DequeueTopic() {
         setSubscriberName("");
         setVariant("success");
         setAlertHeading("Dequeue Success!!!");
-        setMessage(result);
       } else {
         setVariant("danger");
         setAlertHeading("Oh snap! You got an error!");
-        setMessage(result);
       }
+      setRequestURL(response.url);
+      setResponseMessage(result);
     } catch (error) {
-      setMessage(error);
+      setResponseMessage(error);
       setVariant("danger");
       setAlertHeading("Oh snap! You got an error!");
     }
@@ -98,12 +101,14 @@ function DequeueTopic() {
           </Col>
         </Row>
         <br />
+        <br />
 
-        <Alert variant={variant}>
-          <Alert.Heading>{alertHeading}</Alert.Heading>
-
-          <span>{message ? <span>{message}</span> : null}</span>
-        </Alert>
+        <AlertResponse
+          variant={variant}
+          alertHeading={alertHeading}
+          requestURL={requestURL}
+          responseMessage={responseMessage}
+        />
       </form>
     </div>
   );

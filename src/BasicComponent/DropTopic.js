@@ -1,21 +1,22 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useForm } from "react-hook-form";
-import { Form, Col, Row, Alert } from "react-bootstrap";
+import { Form, Col, Row } from "react-bootstrap";
 import {
   headerAndReq,
   topicListUrl,
   useFetchTopicData,
 } from "../Component/ApiData";
+import AlertResponse from "../Component/AlertResponse";
 
 function DropTopic() {
   const [topicName, setTopicName] = useState("");
-  const [message, setMessage] = useState("");
+  const { register, handleSubmit, formState } = useForm();
+  const { isSubmitting } = formState;
 
   const [variant, setVariant] = useState("");
   const [alertHeading, setAlertHeading] = useState("");
-
-  const { register, handleSubmit, formState } = useForm();
-  const { isSubmitting } = formState;
+  const [requestURL, setRequestURL] = useState("");
+  const [responseMessage, setResponseMessage] = useState("");
 
   const [topicData, topicLoading] = useFetchTopicData(2000);
   if (topicData !== undefined && topicData !== null) {
@@ -23,29 +24,32 @@ function DropTopic() {
   }
 
   const onSubmit = async (e) => {
-    let response = fetch(topicListUrl + e.topic + "/", headerAndReq("DELETE"))
-      .then((response) => response.text())
-      .then((result) => {
-        console.log(result);
-        if (result === "\n") {
-          setVariant("success");
-          setAlertHeading("Topic " + e.topic + " dropped.");
-          setMessage(result);
-        } else {
-          setVariant("danger");
-          setAlertHeading("Oh snap! You got an error!");
-          setMessage(result);
-        }
-      })
-      .catch((error) => {
-        setMessage(error);
+    try {
+      const response = await fetch(
+        topicListUrl + e.topic + "/",
+        headerAndReq("DELETE")
+      );
+      let result = await response.text();
+      if (response.status === 201 || response.status === 200) {
+        setVariant("success");
+        setAlertHeading("Topic " + e.topic.toUpperCase() + " dropped.");
+        setRequestURL(response.url);
+        setResponseMessage("Success! There is no content to display yet");
+      } else {
         setVariant("danger");
-        setAlertHeading("Ah snap! You got an error!");
-      });
+        setAlertHeading("Oh snap! You got an error!");
+        setRequestURL(response.url);
+        setResponseMessage(result);
+      }
+    } catch (error) {
+      setResponseMessage(error);
+      setVariant("danger");
+      setAlertHeading("Oh snap! You got an error!");
+    }
     return new Promise((resolve) => {
       setTimeout(() => {
         resolve();
-      }, 3000);
+      }, 2000);
     });
   };
 
@@ -97,10 +101,13 @@ function DropTopic() {
           </Col>
         </Row>
         <br />
-        <Alert variant={variant}>
-          <Alert.Heading>{alertHeading}</Alert.Heading>
-          <span>{message ? <span>{message}</span> : null}</span>
-        </Alert>
+        <br />
+        <AlertResponse
+          variant={variant}
+          alertHeading={alertHeading}
+          requestURL={requestURL}
+          responseMessage={responseMessage}
+        />
       </form>
     </div>
   );

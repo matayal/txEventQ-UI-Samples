@@ -1,17 +1,20 @@
 import React, { useState } from "react";
-import { Col, Row, Alert } from "react-bootstrap";
+import { Col, Row } from "react-bootstrap";
 import Form from "react-bootstrap/Form";
 import { Button } from "rsuite";
 import "rsuite/dist/rsuite.min.css";
 import { headerAndReq, topicListUrl } from "../Component/ApiData";
+import AlertResponse from "../Component/AlertResponse";
 
 function CreateTopic() {
   const [topicName, setTopicName] = useState("");
-  const [partitionsCount, setPartitionsCount] = useState(1);
-  const [message, setMessage] = useState("");
+  const [partitionsCount, setPartitionsCount] = useState(5);
+  const [loading, setLoading] = React.useState(false);
+
   const [variant, setVariant] = useState("");
   const [alertHeading, setAlertHeading] = useState("");
-  const [loading, setLoading] = React.useState(false);
+  const [requestURL, setRequestURL] = useState("");
+  const [responseMessage, setResponseMessage] = useState("");
 
   let handleSubmit = async (e) => {
     try {
@@ -28,19 +31,23 @@ function CreateTopic() {
       );
       let result = await response.text();
       if (response.status === 201) {
+        setTopicName("");
         setVariant("success");
-        setMessage(result);
-        setAlertHeading("Congrats! Topic created.");
+        setAlertHeading(
+          'Congrats! Topic "' + topicName.toUpperCase() + '" created.'
+        );
       } else {
         setVariant("danger");
         setAlertHeading("Oh snap! You got an error!");
-        setMessage(result);
       }
+
+      setRequestURL(response.url);
+      setResponseMessage(result);
     } catch (error) {
-      setMessage(error);
-      console.log(error);
       setVariant("danger");
       setAlertHeading("Oh snap! You got an error!");
+      setResponseMessage(error);
+      console.log(error);
     }
     setLoading(false);
   };
@@ -76,9 +83,11 @@ function CreateTopic() {
               <Form.Control
                 type="number"
                 value={partitionsCount}
+                max={100}
                 placeholder="Partitions Count"
                 onChange={(e) => setPartitionsCount(e.target.value)}
               />
+              <Form.Text muted>Range: [1- 50000]</Form.Text>
             </Col>
           </Form.Group>
         </Row>
@@ -97,11 +106,12 @@ function CreateTopic() {
         <br />
         <br />
 
-        <Alert show={message} variant={variant}>
-          <Alert.Heading>{alertHeading}</Alert.Heading>
-          <hr />
-          <span>{message ? <span>{message}</span> : null}</span>
-        </Alert>
+        <AlertResponse
+          variant={variant}
+          alertHeading={alertHeading}
+          requestURL={requestURL}
+          responseMessage={responseMessage}
+        />
       </Form>
     </div>
   );

@@ -1,60 +1,84 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import { useForm } from "react-hook-form";
-import { Form, Col, Row, Alert } from "react-bootstrap";
+import { Form, Col, Row } from "react-bootstrap";
 import {
   headerAndReq,
   useFetchSubscriberData,
   subscriberListUrl,
 } from "../Component/ApiData";
+import AlertResponse from "../Component/AlertResponse";
 
 function DropSubscriber() {
   const [topicName, setTopicName] = useState("");
   const [subscriberName, setSubscriberName] = useState("");
-
-  const [message, setMessage] = useState("");
-  const [variant, setVariant] = useState("");
-  const [alertHeading, setAlertHeading] = useState("");
-
   const { register, handleSubmit, formState } = useForm();
   const { isSubmitting } = formState;
+
+  const [variant, setVariant] = useState("");
+  const [alertHeading, setAlertHeading] = useState("");
+  const [requestURL, setRequestURL] = useState("");
+  const [responseMessage, setResponseMessage] = useState("");
 
   const [subscriberData, subscriberLoading] = useFetchSubscriberData(2500);
 
   const onSubmit = async (e) => {
-    fetch(
-      subscriberListUrl + e.subscriberName + "/?topic_name=" + e.topic,
-      headerAndReq("DELETE")
-    )
-      .then((response) => response.text())
-      .then((result) => {
-        console.log(result);
-        if (result === "\n") {
-          setVariant("success");
-          setAlertHeading("Subscriber " + e.subscriberName + "  dropped.");
-          setMessage(result);
-        } else {
-          setVariant("danger");
-          setAlertHeading("Oh snap! You got an error!");
-          setMessage(result);
-        }
-      })
-      .catch((error) => {
-        setMessage(error);
+    try {
+      const response = await fetch(
+        subscriberListUrl + e.subscriberName + "/?topic_name=" + e.topic,
+        headerAndReq("DELETE")
+      );
+
+      let result = await response.text();
+      if (response.status === 201 || response.status === 200) {
+        setVariant("success");
+        setAlertHeading(
+          "Subscriber " + e.subscriberName.toUpperCase() + "  dropped."
+        );
+        setRequestURL(response.url);
+        setResponseMessage("Success! There is no content to display yet");
+      } else {
         setVariant("danger");
-        setAlertHeading("Ah snap! You got an error!");
-      });
+        setAlertHeading("Oh snap! You got an error!");
+        setRequestURL(response.url);
+        setResponseMessage(result);
+      }
+    } catch (error) {
+      setResponseMessage(error);
+      setVariant("danger");
+      setAlertHeading("Oh snap! You got an error!");
+    }
     return new Promise((resolve) => {
       setTimeout(() => {
         resolve();
       }, 2000);
     });
   };
+
+  //Topic DropDown
   var distinctTopicValues;
   if (subscriberData !== undefined && subscriberData !== null) {
     distinctTopicValues = [
       ...new Set(subscriberData.map((item) => item.topic)),
     ];
   }
+  const handleTopicChange = (e) => {
+    const selectedTopic = e.target.value;
+    setTopicName(selectedTopic);
+  };
+
+  //SubscriberDropDown
+  const subscriberDataFiltered = useMemo(() => {
+    if (
+      subscriberData &&
+      subscriberData !== undefined &&
+      subscriberData !== null
+    ) {
+      return subscriberData.filter((item) => item.topic === topicName);
+    } else {
+      return [];
+    }
+  }, [topicName, subscriberData]);
+
   return (
     <div className="App">
       <form onSubmit={handleSubmit(onSubmit)}>
@@ -69,19 +93,14 @@ function DropSubscriber() {
                 required
                 as="select"
                 {...register("topic", { required: true })}
+                onChange={handleTopicChange}
               >
-                <option value="" onChange={(e) => setTopicName(e.target.value)}>
-                  Select...
-                </option>
+                <option value="">Select...</option>
                 {distinctTopicValues &&
                   distinctTopicValues
                     .sort((a, b) => (a > b ? 1 : -1))
                     .map((value, index) => (
-                      <option
-                        key={index}
-                        value={value}
-                        onChange={(e) => setTopicName(e.target.value)}
-                      >
+                      <option key={index} value={value}>
                         {value}
                       </option>
                     ))}
@@ -107,22 +126,16 @@ function DropSubscriber() {
                 >
                   Select...
                 </option>
-                {subscriberData &&
-                  subscriberData !== undefined &&
-                  subscriberData !== null &&
-                  subscriberData
-                    .sort((a, b) =>
-                      a.consumer_group_id > b.consumer_group_id ? 1 : -1
-                    )
-                    .map((item, index) => (
-                      <option
-                        key={index}
-                        value={item.consumer_group_id}
-                        onChange={(e) => setSubscriberName(e.target.value)}
-                      >
-                        {item.consumer_group_id}
-                      </option>
-                    ))}
+                {subscriberDataFiltered &&
+                  subscriberDataFiltered.map((item, index) => (
+                    <option
+                      key={index}
+                      value={item.consumer_group_id}
+                      onChange={(e) => setSubscriberName(e.target.value)}
+                    >
+                      {item.consumer_group_id}
+                    </option>
+                  ))}
               </Form.Control>
             </Col>
           </Form.Group>
@@ -138,12 +151,14 @@ function DropSubscriber() {
           </Col>
         </Row>
         <br />
+        <br />
 
-        <Alert variant={variant}>
-          <Alert.Heading>{alertHeading}</Alert.Heading>
-
-          <span>{message ? <span>{message}</span> : null}</span>
-        </Alert>
+        <AlertResponse
+          variant={variant}
+          alertHeading={alertHeading}
+          requestURL={requestURL}
+          responseMessage={responseMessage}
+        />
       </form>
     </div>
   );

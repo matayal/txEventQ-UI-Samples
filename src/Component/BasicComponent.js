@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import CreateTopic from "../BasicComponent/CreateTopic";
 import CreateSubscriber from "../BasicComponent/CreateSubscriber";
 import ViewSubscriber from "../BasicComponent/ViewSubscriber";
@@ -9,8 +9,6 @@ import DropTopic from "../BasicComponent/DropTopic";
 import ViewTopics from "../BasicComponent/ViewTopics";
 import { Accordion } from "react-bootstrap";
 export default function BasicComponent() {
-  const [delay, setDelay] = useState(2000);
-
   return (
     <div>
       <Accordion flush>

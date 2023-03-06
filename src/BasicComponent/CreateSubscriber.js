@@ -6,45 +6,55 @@ import {
   useFetchTopicData,
   subscriberListUrl,
 } from "../Component/ApiData";
+import AlertResponse from "../Component/AlertResponse";
 
 function CreateSubscriber() {
   const [topicName, setTopicName] = useState("");
   const [subscriberName, setSubscriberName] = useState("");
-
-  const [message, setMessage] = useState("");
-  const [variant, setVariant] = useState("");
-  const [alertHeading, setAlertHeading] = useState("");
-
   const { register, handleSubmit, formState } = useForm();
   const { isSubmitting } = formState;
+
+  const [variant, setVariant] = useState("");
+  const [alertHeading, setAlertHeading] = useState("");
+  const [requestURL, setRequestURL] = useState("");
+  const [responseMessage, setResponseMessage] = useState("");
 
   const [topicData, topicLoading] = useFetchTopicData(2800);
 
   const onSubmit = async (e) => {
-    const response = await fetch(
-      subscriberListUrl + e.subscriberName + "/?topic_name=" + e.topic,
-      headerAndReq("POST")
-    );
-
-    if (response.status === 201 || response.status === 200) {
-      setTopicName("");
-      setSubscriberName("");
-      setVariant("success");
-      setAlertHeading(
-        'Congrats! Subscriber "' + e.subscriberName + '" created.'
+    try {
+      const response = await fetch(
+        subscriberListUrl + e.subscriberName + "/?topic_name=" + e.topic,
+        headerAndReq("POST")
       );
-    } else {
-      Promise.resolve(response.json()).then((value) => {
+      let result = await response.text();
+      if (response.status === 201) {
+        setTopicName("");
+        setSubscriberName("");
+        setVariant("success");
+        setAlertHeading(
+          'Congrats! Subscriber "' +
+            e.subscriberName.toUpperCase() +
+            '" created.'
+        );
+        setRequestURL(response.url);
+        setResponseMessage("Success! There is no content to display yet");
+      } else {
         setVariant("danger");
         setAlertHeading("Oh snap! You got an error!");
-        setMessage(JSON.stringify(value));
-      });
+        setRequestURL(response.url);
+        setResponseMessage(result);
+      }
+    } catch (error) {
+      setResponseMessage(error);
+      setVariant("danger");
+      setAlertHeading("Oh snap! You got an error!");
     }
 
     return new Promise((resolve) => {
       setTimeout(() => {
         resolve();
-      }, 2000);
+      }, 1800);
     });
   };
 
@@ -67,8 +77,6 @@ function CreateSubscriber() {
                   Select...
                 </option>
                 {topicData &&
-                  topicData !== undefined &&
-                  topicData !== null &&
                   topicData
                     .sort((a, b) => (a.topic_name > b.topic_name ? 1 : -1))
                     .map((item) => (
@@ -112,12 +120,14 @@ function CreateSubscriber() {
           </Col>
         </Row>
         <br />
+        <br />
 
-        <Alert variant={variant}>
-          <Alert.Heading>{alertHeading}</Alert.Heading>
-
-          <span>{message ? <span>{message}</span> : null}</span>
-        </Alert>
+        <AlertResponse
+          variant={variant}
+          alertHeading={alertHeading}
+          requestURL={requestURL}
+          responseMessage={responseMessage}
+        />
       </form>
     </div>
   );

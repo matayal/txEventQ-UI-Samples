@@ -2,30 +2,37 @@ import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { Form, Col, Row, Alert } from "react-bootstrap";
 import { headerAndReq, useFetchTopicData, baseUrl } from "../Component/ApiData";
+import AlertResponse from "../Component/AlertResponse";
 
 function EnqueueTopic() {
   const [topicName, setTopicName] = useState("");
   const [partitionsCount, setPartitionsCount] = useState(1);
 
   const [userMessage, setUserMessage] = useState("");
-  const [message, setMessage] = useState("");
   const [note, setNote] = useState("");
-
-  const [variant, setVariant] = useState("");
-  const [alertHeading, setAlertHeading] = useState("");
 
   const { register, handleSubmit, formState } = useForm();
   const { isSubmitting } = formState;
+
+  const [variant, setVariant] = useState("");
+  const [alertHeading, setAlertHeading] = useState("");
+  const [requestURL, setRequestURL] = useState("");
+  const [responseMessage, setResponseMessage] = useState("");
 
   const [topicData, topicLoading] = useFetchTopicData(3800);
 
   const onSubmit = async (e) => {
     try {
-      const partitionDecr = e.partitionsCount - 1;
+      const partitionAdjuster = e.partitionsCount - 1;
 
       const msgBody = '{"records": [{' + e.userMessage + "}]}";
       let response = await fetch(
-        baseUrl + "topics/" + e.topic + "/partitions/" + partitionDecr + "/",
+        baseUrl +
+          "topics/" +
+          e.topic +
+          "/partitions/" +
+          partitionAdjuster +
+          "/",
         headerAndReq("POST", msgBody)
       );
       let result = await response.text();
@@ -35,17 +42,19 @@ function EnqueueTopic() {
         setUserMessage("");
         setVariant("success");
         setAlertHeading("Congrats! Message sent Successfully.");
-        setMessage(result);
+        setRequestURL(response.url);
+        setResponseMessage(result);
         setNote(
           "Partitions in the database starts with index 0. If you created a topic with 5 Partitions_count, the Partition index would be 0 to 4."
         );
       } else {
         setVariant("danger");
         setAlertHeading("Oh snap! You got an error!");
-        setMessage(result);
+        setRequestURL(response.url);
+        setResponseMessage(result);
       }
     } catch (error) {
-      setMessage(error);
+      setResponseMessage(error);
       setVariant("danger");
       setAlertHeading("Oh snap! You got an error!");
     }
@@ -138,13 +147,14 @@ function EnqueueTopic() {
           </Col>
         </Row>
         <br />
-
-        <Alert variant={variant}>
-          <Alert.Heading>{alertHeading}</Alert.Heading>
-          <span>{message ? <span>{message}</span> : null} </span>
-          <hr />
-          <span className="mb-0">{note ? <span>{note}</span> : null}</span>
-        </Alert>
+        <br />
+        <AlertResponse
+          variant={variant}
+          alertHeading={alertHeading}
+          requestURL={requestURL}
+          responseMessage={responseMessage}
+          note={note}
+        />
       </form>
     </div>
   );
