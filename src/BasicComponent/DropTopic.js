@@ -30,7 +30,10 @@ function DropTopic() {
         headerAndReq("DELETE")
       );
       let result = await response.text();
+      console.log("1" + response.status);
+
       if (response.status === 201 || response.status === 200) {
+        console.log("2" + response.status);
         setVariant("success");
         setAlertHeading("Topic " + e.topic.toUpperCase() + " dropped.");
         setRequestURL(response.url);
@@ -49,7 +52,7 @@ function DropTopic() {
     return new Promise((resolve) => {
       setTimeout(() => {
         resolve();
-      }, 2000);
+      }, 1000);
     });
   };
 

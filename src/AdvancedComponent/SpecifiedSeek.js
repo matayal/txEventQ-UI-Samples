@@ -26,6 +26,7 @@ function SpecifiedSeek() {
 
   const [subscriberData, subscriberLoading] = useFetchSubscriberData(4000);
   const [partitionData, setPartitionData] = useState([]);
+  const [offsetData, setOffsetData] = useState([]);
 
   const onSubmit = async (e) => {
     try {
@@ -104,6 +105,48 @@ function SpecifiedSeek() {
     }
   }, [topicName, subscriberData]);
 
+  const handlePartitionChange = async (e) => {
+    const selectedPartition = e.target.value;
+    setPartitionsCount(selectedPartition);
+    if (selectedPartition && topicName) {
+      try {
+        let response = await fetch(
+          baseUrl +
+            "topics/" +
+            topicName +
+            "/partitions/" +
+            selectedPartition +
+            "/offsets",
+          headerAndReq("GET")
+        );
+        let result = await response.text();
+        if (response.status === 201) {
+          setOffsetData(result);
+          console.log("RequestAPI: " + response.url);
+          console.log(result);
+        } else {
+          console.log("Else RequestAPI: " + response.url);
+          console.log(result);
+          setOffsetData(result);
+        }
+      } catch (error) {
+        console.log(error);
+      }
+    }
+  };
+
+  //set offset
+  const handleInputChange = (event) => {
+    const value = event.target.value.trim();
+    const parsedData = JSON.parse(offsetData);
+    if (
+      value >= parsedData.beginning_offset &&
+      value <= parsedData.end_offset
+    ) {
+      setOffset(value);
+    }
+  };
+
   return (
     <div className="App">
       <form onSubmit={handleSubmit(onSubmit)}>
@@ -165,24 +208,7 @@ function SpecifiedSeek() {
             </Col>
           </Form.Group>
         </Row>
-        <Row>
-          <Form.Group className="mb-3">
-            <Col xs={5}>
-              <Form.Label>Enter the offset:</Form.Label>
-            </Col>
 
-            <Col xs={5}>
-              <Form.Control
-                required
-                type="number"
-                value={offset}
-                {...register("offset", { required: true })}
-                placeholder="offset"
-                onChange={(e) => setOffset(e.target.value)}
-              />
-            </Col>
-          </Form.Group>
-        </Row>
         <Row>
           <Form.Group className="mb-3">
             <Col xs={5}>
@@ -194,24 +220,35 @@ function SpecifiedSeek() {
                 required
                 as="select"
                 {...register("partitionsCount", { required: true })}
+                onChange={handlePartitionChange}
               >
-                <option
-                  value=""
-                  onChange={(e) => setPartitionsCount(e.target.value)}
-                >
-                  Select...
-                </option>
+                <option value="">Select...</option>
                 {partitionData &&
                   partitionData.map((item, index) => (
-                    <option
-                      key={index}
-                      value={item.partition}
-                      onChange={(e) => setPartitionsCount(e.target.value)}
-                    >
+                    <option key={index} value={item.partition}>
                       {item.partition}
                     </option>
                   ))}
               </Form.Control>
+            </Col>
+          </Form.Group>
+        </Row>
+        <Row>
+          <Form.Group className="mb-3">
+            <Col xs={5}>
+              <Form.Label>Enter the offset:</Form.Label>
+            </Col>
+
+            <Col xs={5}>
+              <Form.Control
+                required
+                type="text"
+                value={offset}
+                {...register("offset", { required: true })}
+                placeholder="offset"
+                onChange={handleInputChange}
+              />
+              <Form.Text muted>{offsetData}</Form.Text>
             </Col>
           </Form.Group>
         </Row>

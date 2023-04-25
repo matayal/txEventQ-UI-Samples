@@ -51,6 +51,14 @@ function DequeueTopic() {
     });
   };
 
+  //Distinct Subscriber
+  var distinctSubs;
+  if (subscriberData !== undefined && subscriberData !== null) {
+    distinctSubs = [
+      ...new Set(subscriberData.map((item) => item.consumer_group_id)),
+    ];
+  }
+
   return (
     <div className="App">
       <form onSubmit={handleSubmit(onSubmit)}>
@@ -72,18 +80,16 @@ function DequeueTopic() {
                 >
                   Select...
                 </option>
-                {subscriberData &&
-                  subscriberData !== undefined &&
-                  subscriberData !== null &&
-                  subscriberData
-                    .sort((a, b) => (a.topic_name > b.topic_name ? 1 : -1))
-                    .map((item) => (
+                {distinctSubs &&
+                  distinctSubs
+                    .sort((a, b) => (a > b ? 1 : -1))
+                    .map((value, index) => (
                       <option
-                        key={item.consumer_group_id}
-                        value={item.consumer_group_id}
+                        key={index}
+                        value={value}
                         onChange={(e) => setSubscriberName(e.target.value)}
                       >
-                        {item.consumer_group_id}
+                        {value}
                       </option>
                     ))}
               </Form.Control>

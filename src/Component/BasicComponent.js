@@ -41,14 +41,14 @@ export default function BasicComponent() {
         </Accordion.Item>
 
         <Accordion.Item eventKey="4">
-          <Accordion.Header>Send a message</Accordion.Header>
+          <Accordion.Header>Publish a message</Accordion.Header>
           <Accordion.Body>
             <EnqueueTopic />
           </Accordion.Body>
         </Accordion.Item>
 
         <Accordion.Item eventKey="5">
-          <Accordion.Header>Consume message</Accordion.Header>
+          <Accordion.Header>Consume messages</Accordion.Header>
           <Accordion.Body>
             <DequeueTopic />
           </Accordion.Body>

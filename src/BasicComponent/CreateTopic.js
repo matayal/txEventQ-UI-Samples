@@ -16,6 +16,14 @@ function CreateTopic() {
   const [requestURL, setRequestURL] = useState("");
   const [responseMessage, setResponseMessage] = useState("");
 
+  const handleInputChange = (event) => {
+    let input = event.target.value;
+    const regex = /^[a-zA-Z][a-zA-Z0-9_]*(?:_[a-zA-Z0-9]+)*$/;
+    if (regex.test(input) || input === "") {
+      setTopicName(input.toUpperCase());
+    }
+  };
+
   let handleSubmit = async (e) => {
     try {
       e.preventDefault();
@@ -68,7 +76,7 @@ function CreateTopic() {
                 type="text"
                 value={topicName}
                 placeholder="Topic Name"
-                onChange={(e) => setTopicName(e.target.value)}
+                onChange={handleInputChange}
                 required
               />
             </Col>

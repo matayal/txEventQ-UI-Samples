@@ -20,6 +20,13 @@ function CreateSubscriber() {
   const [responseMessage, setResponseMessage] = useState("");
 
   const [topicData, topicLoading] = useFetchTopicData(2800);
+  const handleInputChange = (event) => {
+    let input = event.target.value;
+    const regex = /^[a-zA-Z][a-zA-Z0-9_]*(?:_[a-zA-Z0-9]+)*$/;
+    if (regex.test(input) || input === "") {
+      setSubscriberName(input.toUpperCase());
+    }
+  };
 
   const onSubmit = async (e) => {
     try {
@@ -104,7 +111,7 @@ function CreateSubscriber() {
                 value={subscriberName}
                 placeholder="Subscriber Name"
                 {...register("subscriberName", { required: true })}
-                onChange={(e) => setSubscriberName(e.target.value)}
+                onChange={handleInputChange}
               />
             </Col>
           </Form.Group>
